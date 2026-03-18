@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VAC VPN</title>
+  <title>ProzillaVPN</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
-      --primary: #B0CB1F;
+      --primary: linear-gradient(135deg, rgb(255, 133, 26), rgb(245, 168, 61));
+      --secondary: rgb(255, 133, 26);
       --bg: #121212;
       --text: #FFFFFF;
       --card: #1E1E1E;
@@ -31,6 +32,7 @@
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: 16px;
+      align-items: center;
     }
     .logo-container {
       display: flex;
@@ -44,19 +46,17 @@
       margin-bottom: 8px;
     }
     .logo-placeholder {
-      height: 60px;
-      width: 120px;
-      background: var(--primary);
-      color: var(--bg);
-      border-radius: 8px;
+      color: var(--primary);
+      background: -webkit-linear-gradient(135deg, rgb(255, 133, 26), rgb(245, 168, 61));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
-      font-size: 14px;
+      font-weight: 900;
+      font-size: 18px;
       text-align: center;
-      padding: 8px;
-      margin-bottom: 8px;
+      text-transform: uppercase;
     }
     .top-bar-right {
       display: flex;
@@ -64,11 +64,11 @@
       gap: 8px;
     }
     .user-name {
-      font-size: 16px;
-      font-weight: 600;
-      margin-right: 4px;
+      font-size: 14px;
+      font-weight: 500;
     }
     .menu-btn {
+      display: flex;
       font-size: 24px;
       cursor: pointer;
       user-select: none;
@@ -101,8 +101,8 @@
     }
     
     .config-box {
-      background: rgba(176, 203, 31, 0.1);
-      border: 1px solid var(--primary);
+      background: #ff851a0d;
+      border: 1px solid var(--secondary);
       border-radius: 8px;
       padding: 12px;
       margin: 8px 0;
@@ -121,7 +121,7 @@
     
     .menu-dropdown {
       position: absolute;
-      top: 100px;
+      top: 56px;
       right: 16px;
       background: #1E1E1E;
       border-radius: 8px;
@@ -135,7 +135,7 @@
     .menu-dropdown a {
       display: block;
       padding: 12px 16px;
-      color: #B0CB1F;
+      color: #ff851a;
       text-decoration: none;
       font-size: 14px;
       font-weight: 500;
@@ -157,7 +157,7 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     .subscription-info {
-      background: rgba(176, 203, 31, 0.1);
+      background: #ff851a0d;
       border-radius: 8px;
       padding: 12px;
       margin: 12px 0;
@@ -184,8 +184,8 @@
       opacity: 0.9;
     }
     .vless-config {
-      background: rgba(176, 203, 31, 0.1);
-      border: 1px solid var(--primary);
+      background: #ff851a0d;
+      border: 1px solid var(--secondary);
       border-radius: 8px;
       padding: 16px;
       margin: 10px 0;
@@ -205,7 +205,7 @@
     }
     .button-yellow {
       background: var(--primary);
-      color: var(--bg);
+      color: var(--text);
     }
     .button-yellow:active {
       opacity: 0.9;
@@ -214,11 +214,11 @@
     .button-outline {
       background: transparent;
       color: var(--primary);
-      border: 2px solid var(--primary);
+      border: 2px solid var(--secondary);
       margin-bottom: 16px;
     }
     .button-outline:active {
-      background: rgba(176, 203, 31, 0.1);
+      background: #ff851a0d;
     }
     .tariff-grid {
       display: grid;
@@ -234,7 +234,7 @@
       transition: all 0.3s;
     }
     .tariff-card.selected {
-      background: rgba(176, 203, 31, 0.1);
+      background: #ff851a0d;
       box-shadow: 0 0 0 2px var(--primary);
     }
     .tariff-card.disabled {
@@ -248,7 +248,7 @@
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      border: 2px solid var(--primary);
+      border: 2px solid var(--secondary);
       transition: all 0.3s;
     }
     .tariff-card.selected .tariff-dot {
@@ -270,7 +270,7 @@
       display: inline-block;
       padding: 4px 12px;
       background: var(--primary);
-      color: var(--bg);
+      color: var(--text);
       border-radius: 999px;
       font-size: 13px;
       font-weight: 600;
@@ -282,10 +282,10 @@
       line-height: 1.4;
     }
     .referral-block {
-      border: 1px solid var(--primary);
+      border: 1px solid var(--secondary);
       border-radius: 10px;
-      padding: 12px;
       margin: 12px 0;
+      padding: 12px;
     }
     .referral-description {
       font-size: 13px;
@@ -311,7 +311,7 @@
     }
     .copy-btn {
       background: var(--primary);
-      color: var(--bg);
+      color: var(--text);
       border: none;
       padding: 6px 12px;
       border-radius: 6px;
@@ -413,14 +413,14 @@
       margin-top: 10px;
     }
     .tariff-info {
-      background: rgba(176, 203, 31, 0.1);
+      background: #ff851a0d;
       border-radius: 8px;
       padding: 12px;
       margin: 12px 0;
       font-size: 14px;
     }
     .balance-info {
-      background: rgba(176, 203, 31, 0.1);
+      background: #ff851a0d;
       border-radius: 8px;
       padding: 12px;
       margin: 8px 0;
@@ -434,15 +434,15 @@
     .payment-method {
       flex: 1;
       padding: 12px;
-      border: 2px solid rgba(176, 203, 31, 0.3);
+      border: 2px solid var(--secondary);
       border-radius: 8px;
       text-align: center;
       cursor: pointer;
       transition: all 0.3s;
     }
     .payment-method.selected {
-      border-color: var(--primary);
-      background: rgba(176, 203, 31, 0.1);
+      border-color: var(--secondary);
+      background: #ff851a0d;
     }
     .payment-method.disabled {
       opacity: 0.5;
@@ -485,13 +485,13 @@
     .add-balance-section {
       margin: 16px 0;
       padding: 16px;
-      background: rgba(176, 203, 31, 0.1);
+      background: #ff851a0d;
       border-radius: 8px;
     }
     .amount-input {
       width: 100%;
       padding: 12px;
-      border: 2px solid var(--primary);
+      border: 2px solid var(--secondary);
       border-radius: 8px;
       background: var(--bg);
       color: var(--text);
@@ -511,15 +511,15 @@
     }
     .amount-preset {
       padding: 10px;
-      border: 2px solid rgba(176, 203, 31, 0.3);
+      border: 2px solid var(--secondary);
       border-radius: 6px;
       text-align: center;
       cursor: pointer;
       transition: all 0.3s;
     }
     .amount-preset.selected {
-      border-color: var(--primary);
-      background: rgba(176, 203, 31, 0.1);
+      border-color: var(--secondary);
+      background: #ff851a0d;
     }
     .amount-preset:active {
       transform: scale(0.95);
@@ -540,7 +540,7 @@
     
     .retry-button {
       background: var(--primary);
-      color: var(--bg);
+      color: var(--text);
       border: none;
       padding: 10px 20px;
       border-radius: 8px;
@@ -590,7 +590,9 @@
     </div>
     <div class="top-bar-right">
       <div class="user-name" id="userName">Загрузка...</div>
-      <div class="menu-btn" onclick="toggleMenu()">≡</div>
+      <div class="menu-btn" onclick="toggleMenu()">
+        <img src="menu.svg" alt="menu">
+      </div>
     </div>
   </div>
 
@@ -632,12 +634,12 @@
       <h3 style="color: var(--primary); margin-bottom: 12px;">🔧 VLESS Конфигурация</h3>
       <div style="margin-bottom: 12px;">
         <strong>UUID:</strong> 
-        <div style="font-family: monospace; background: rgba(176, 203, 31, 0.1); padding: 8px; border-radius: 4px; margin-top: 4px; word-break: break-all; font-size: 12px;" id="vlessUuidText">
+        <div style="font-family: monospace; background: #ff851a0d; padding: 8px; border-radius: 4px; margin-top: 4px; word-break: break-all; font-size: 12px;" id="vlessUuidText">
           Загрузка...
         </div>
       </div>
       <div id="vlessServersList"></div>
-      <div style="margin-top: 12px; padding: 12px; background: rgba(176, 203, 31, 0.1); border-radius: 6px;">
+      <div style="margin-top: 12px; padding: 12px; background: #ff851a0d; border-radius: 6px;">
         <strong>📱 Инструкции по установке:</strong>
         <ul style="margin: 8px 0; padding-left: 20px; font-size: 12px;">
           <li><strong>Android:</strong> Скачайте V2BOX из Play Store</li>
@@ -713,7 +715,7 @@
       </div>
     </div>
     
-    <div id="tariffPaymentInfo" style="display: none; margin: 12px 0; padding: 12px; background: rgba(176, 203, 31, 0.1); border-radius: 8px;">
+    <div id="tariffPaymentInfo" style="display: none; margin: 12px 0; padding: 12px; background: #ff851a0d; border-radius: 8px;">
       <strong>При покупке подписки:</strong><br>
       • Стоимость: <strong style="color: var(--primary);" id="tariffPrice">150₽</strong><br>
       • Период: <strong id="tariffPeriod">30 дней</strong><br>
@@ -758,7 +760,7 @@
       <div class="ref-copy-notification" id="refCopyNotification">
         ✅ Ссылка скопирована!
       </div>
-      <div id="referralStats" style="margin-top: 12px; padding: 10px; background: rgba(176, 203, 31, 0.1); border-radius: 6px; font-size: 13px;">
+      <div id="referralStats" style="margin-top: 12px; padding: 10px; background: #ff851a0d; border-radius: 6px; font-size: 13px;">
         <strong>Ваша реферальная статистика:</strong><br>
         • Приглашено друзей: <strong id="referralCount">0</strong><br>
         • Всего получено: <strong id="totalBonusMoney">0</strong>₽
@@ -912,18 +914,18 @@
       const logoContainer = document.getElementById('logoContainer');
       if (!logoContainer) return;
       
-      const logoUrl = 'https://vacvpn-production.up.railway.app/static/Airbrush-Image-Enhancer-1753455007914.png';
+      const logoUrl = 'https://vacvpn-production.up.railway.app/static/logo.png';
       const img = new Image();
       
       img.onload = function() {
-        logoContainer.innerHTML = `<img src="${logoUrl}" alt="VAC VPN Logo" class="logo">`;
+        logoContainer.innerHTML = `<img src="${logoUrl}" alt="ProzillaVPN Logo" class="logo">`;
         console.log('✅ Logo loaded successfully');
       };
       
       img.onerror = function() {
         logoContainer.innerHTML = `
           <div class="logo-placeholder">
-            VAC VPN
+            ProzillaVPN
           </div>
         `;
         console.log('📝 Showing logo placeholder');
@@ -1262,7 +1264,7 @@
 
     function showSupportChat() {
       // ИСПРАВЛЕНО: правильный формат ссылки для Telegram
-      const supportUrl = 'https://t.me/vacvpn_support';
+      const supportUrl = 'https://t.me/ProstyleLogo';
       if (window.Telegram && window.Telegram.WebApp) {
         window.Telegram.WebApp.openTelegramLink(supportUrl);
       } else {
@@ -1274,7 +1276,7 @@
     function showRules() {
       if (window.Telegram && window.Telegram.WebApp) {
         window.Telegram.WebApp.showAlert(
-          'Правила использования VAC VPN:\n\n' +
+          'Правила использования ProzillaVPN:\n\n' +
           '1. Запрещено использование для незаконной деятельности\n' +
           '2. Нельзя передавать аккаунт третьим лицам\n' +
           '3. Возврат средств возможен в течение 3 дней\n' +
@@ -1283,7 +1285,7 @@
           '6. Реферальные бонусы начисляются после покупки тарифа'
         );
       } else {
-        alert('Правила использования VAC VPN:\n\n1. Запрещено использование для незаконной деятельности\n2. Нельзя передавать аккаунт третьим лицам\n3. Возврат средств возможен в течение 3 дней\n4. VLESS ключ выдается только при активной подписке\n5. Подписка работает по принципу накопления дней\n6. Реферальные бонусы начисляются после покупки тарифа');
+        alert('Правила использования ProzillaVPN:\n\n1. Запрещено использование для незаконной деятельности\n2. Нельзя передавать аккаунт третьим лицам\n3. Возврат средств возможен в течение 3 дней\n4. VLESS ключ выдается только при активной подписке\n5. Подписка работает по принципу накопления дней\n6. Реферальные бонусы начисляются после покупки тарифа');
       }
       toggleMenu();
     }
@@ -1923,7 +1925,7 @@
 
     function showHelp() {
       // ИСПРАВЛЕНО: кнопка помощи теперь открывает чат поддержки
-      const supportUrl = 'https://t.me/vacvpn_support';
+      const supportUrl = 'https://t.me/ProstyleLogo';
       if (window.Telegram && window.Telegram.WebApp) {
         window.Telegram.WebApp.openTelegramLink(supportUrl);
       } else {
@@ -1934,7 +1936,7 @@
     // ==================== ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ ====================
 
     document.addEventListener('DOMContentLoaded', function() {
-      console.log(`🚀 VAC VPN WebApp v${APP_VERSION} starting...`);
+      console.log(`🚀 ProzillaVPN WebApp v${APP_VERSION} starting...`);
       
       // Инициализируем Telegram WebApp
       if (window.Telegram && window.Telegram.WebApp) {

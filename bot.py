@@ -31,9 +31,9 @@ if not os.getenv('TOKEN'):
 
 # Получаем переменные окружения
 TOKEN = os.getenv("TOKEN")
-SUPPORT_NICK = os.getenv("SUPPORT_NICK", "@vacvpn_support")
-TG_CHANNEL = os.getenv("TG_CHANNEL", "@vac_vpn")
-BOT_USERNAME = os.getenv("BOT_USERNAME", "vaaaac_bot")
+SUPPORT_NICK = os.getenv("SUPPORT_NICK", "@@ProstyleLogo")
+TG_CHANNEL = os.getenv("TG_CHANNEL", "@prozillavpn)
+BOT_USERNAME = os.getenv("BOT_USERNAME", "ProzillaVPN_bot")
 
 # URL API и веб-приложения
 RAILWAY_STATIC_URL = os.getenv("RAILWAY_STATIC_URL")
@@ -183,7 +183,7 @@ def get_vless_keyboard():
 # Текстовые сообщения
 def get_welcome_message(user_name: str, is_referral: bool = False):
     message = f"""
-<b>Добро пожаловать в VAC VPN, {user_name}!</b>
+<b>Добро пожаловать в ProzillaVPN, {user_name}!</b>
 
 🚀 Получите безопасный и быстрый доступ к интернету с нашей VPN-службой.
 
@@ -209,7 +209,7 @@ async def get_cabinet_message(user_id: int):
     
     if user_data.get('error'):
         return f"""
-<b>Личный кабинет VAC VPN</b>
+<b>Личный кабинет ProzillaVPN</b>
 
 ❌ Ошибка загрузки данных: {user_data['error']}
 
@@ -233,7 +233,7 @@ async def get_cabinet_message(user_id: int):
     total_bonus_money = referral_stats.get('total_bonus_money', 0)
     
     return f"""
-<b>Личный кабинет VAC VPN</b>
+<b>Личный кабинет ProzillaVPN</b>
 
 💰 Баланс: <b>{balance}₽</b>
 📅 Статус подписки: <b>{status_text}</b>
@@ -248,7 +248,7 @@ async def get_cabinet_message(user_id: int):
 
 def get_ref_message(user_id: int):
     return f"""
-<b>Реферальная программа VAC VPN</b>
+<b>Реферальная программа ProzillaVPN</b>
 
 Пригласите друга по вашей ссылке:
 <code>https://t.me/{BOT_USERNAME}?start=ref_{user_id}</code>
@@ -263,7 +263,7 @@ def get_ref_message(user_id: int):
 
 def get_support_message():
     return f"""
-<b>Техническая поддержка VAC VPN</b>
+<b>Техническая поддержка ProzillaVPN</b>
 
 Если у вас возникли вопросы или проблемы:
 
@@ -434,7 +434,7 @@ async def web_app_handler(message: types.Message):
         )
     )
     await message.answer(
-        f"🌐 <b>Веб-кабинет VAC VPN</b>\n\n"
+        f"🌐 <b>Веб-кабинет ProzillaVPN</b>\n\n"
         f"Для покупки подписки и управления аккаунтом откройте веб-кабинет:",
         reply_markup=builder.as_markup(),
         disable_web_page_preview=True
@@ -455,7 +455,7 @@ async def vless_handler(message: types.Message):
 async def back_to_menu_handler(callback: types.CallbackQuery):
     await callback.message.delete()
     await callback.message.answer(
-        "Главное меню VAC VPN",
+        "Главное меню ProzillaVPN",
         reply_markup=get_main_keyboard(),
         disable_web_page_preview=True
     )
@@ -530,7 +530,7 @@ async def errors_handler(update: types.Update, exception: Exception):
 async def run_bot():
     logger.info("🔄 BOT VERSION 2.0 - WEB PREVIEW DISABLED")
     
-    logger.info("🤖 Бот VAC VPN запускается...")
+    logger.info("🤖 Бот ProzillaVPN запускается...")
     logger.info(f"🌐 API сервер: {API_BASE_URL}")
     logger.info(f"🌐 Веб-приложение: {WEB_APP_URL}")
     

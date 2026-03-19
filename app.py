@@ -31,8 +31,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="VAC VPN API",
-    description="Complete VAC VPN Service with API and Web Interface",
+    title="ProzillaVPN API",
+    description="Complete ProzillaVPN Service with API and Web Interface",
     version="1.0.0"
 )
 
@@ -228,7 +228,7 @@ def create_placeholder_logo():
             except:
                 font = ImageFont.load_default()
         
-        d.text((60, 40), "VAC", fill='#121212', font=font, anchor="mm")
+        d.text((60, 40), "Prozilla", fill='#121212', font=font, anchor="mm")
         d.text((60, 70), "VPN", fill='#121212', font=font, anchor="mm")
         
         img.save(logo_path, "PNG")
@@ -559,7 +559,7 @@ def create_user_vless_configs(user_id: str, vless_uuid: str, server_id: str = No
                 f"fp=chrome&"
                 f"sni={clean_sni}&"
                 f"sid={short_id}#"
-                f"VAC-VPN-{user_id}-{server['id']}"
+                f"Prozilla-VPN-{user_id}-{server['id']}"
             )
         else:
             vless_link = (
@@ -567,7 +567,7 @@ def create_user_vless_configs(user_id: str, vless_uuid: str, server_id: str = No
                 f"encryption=none&"
                 f"type=tcp&"
                 f"security=none#"
-                f"VAC-VPN-{user_id}-{server['id']}"
+                f"Prozilla-VPN-{user_id}-{server['id']}"
             )
         
         config = {
@@ -578,7 +578,7 @@ def create_user_vless_configs(user_id: str, vless_uuid: str, server_id: str = No
             "port": port,
             "security": security,
             "type": "tcp",
-            "remark": f"VAC VPN - {user_id} - {server['name']}",
+            "remark": f"ProzillaVPN - {user_id} - {server['name']}",
             "user_id": user_id,
             "server_id": server["id"]
         }
@@ -901,7 +901,7 @@ def get_referral_link(user_id: str) -> str:
 
 def generate_referral_link(user_id: str) -> str:
     """Генерирует реферальную ссылку для пользователя"""
-    return f"https://t.me/vaaaac_bot?start=ref_{user_id}"
+    return f"https://t.me/ProzillaVPN_bot?start=ref_{user_id}"
 
 # Функция для запуска бота в отдельном процессе
 def run_bot():
@@ -915,7 +915,7 @@ def run_bot():
 @app.on_event("startup")
 async def startup_event():
     """Действия при запуске приложения"""
-    logger.info("🚀 VAC VPN Server starting up...")
+    logger.info("🚀 ProzillaVPN Server starting up...")
     
     ensure_logo_exists()
     start_subscription_checker()
@@ -934,7 +934,7 @@ async def root():
     
     xray_users_count = await get_xray_users_count()
     return {
-        "message": "VAC VPN API is running", 
+        "message": "ProzillaVPN API is running", 
         "status": "ok",
         "firebase": "connected" if db else "disconnected",
         "xray_users": xray_users_count,
@@ -949,7 +949,7 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "service": "VAC VPN API",
+        "service": "ProzillaVPN API",
         "firebase": "connected" if db else "disconnected",
         "xray_users": xray_users_count,
         "available_servers": [server["name"] for server in VLESS_SERVERS],
@@ -1199,9 +1199,9 @@ async def add_balance(request: AddBalanceRequest):
             
             yookassa_data = {
                 "amount": {"value": f"{request.amount:.2f}", "currency": "RUB"},
-                "confirmation": {"type": "redirect", "return_url": "https://t.me/vaaaac_bot"},
+                "confirmation": {"type": "redirect", "return_url": "https://t.me/ProzillaVPN_bot"},
                 "capture": True,
-                "description": f"Пополнение баланса VAC VPN на {request.amount}₽",
+                "description": f"Пополнение баланса ProzillaVPN на {request.amount}₽",
                 "metadata": {
                     "payment_id": payment_id,
                     "user_id": request.user_id,
@@ -1311,9 +1311,9 @@ async def activate_tariff(request: ActivateTariffRequest):
             
             yookassa_data = {
                 "amount": {"value": f"{tariff_price:.2f}", "currency": "RUB"},
-                "confirmation": {"type": "redirect", "return_url": "https://t.me/vaaaac_bot"},
+                "confirmation": {"type": "redirect", "return_url": "https://t.me/ProzillaVPN_bot"},
                 "capture": True,
-                "description": f"Покупка подписки {tariff_data['name']} - VAC VPN (Сервер: {selected_server})",
+                "description": f"Покупка подписки {tariff_data['name']} - ProzillaVPN (Сервер: {selected_server})",
                 "metadata": {
                     "payment_id": payment_id,
                     "user_id": request.user_id,

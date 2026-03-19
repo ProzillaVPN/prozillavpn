@@ -113,7 +113,6 @@ REFERRAL_BONUS_REFERRER = 50.0
 REFERRAL_BONUS_REFERRED = 100.0
 
 # Инициализация Firebase
-# Инициализация Firebase (без краша)
 try:
     if not firebase_admin._apps:
         logger.info("🚀 Initializing Firebase for Railway")
@@ -131,19 +130,18 @@ try:
             "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_X509_CERT_URL"),
             "universe_domain": "googleapis.com"
         }
-
-        # 🔥 ВОТ ЗДЕСЬ защита
-        if not firebase_config.get("project_id") or not firebase_config.get("private_key") or not firebase_config.get("client_email"):
-            logger.warning("⚠️ Firebase disabled: missing config")
-            db = None
-        else:
-            cred = credentials.Certificate(firebase_config)
-            firebase_admin.initialize_app(cred)
-            db = firestore.client()
-            logger.info("✅ Firebase initialized successfully")
-    else:
-        db = firestore.client()
-
+        
+        required_fields = ["project_id", "private_key", "client_email"]
+        for field in required_fields:
+            if not firebase_config.get(field):
+                raise ValueError(f"Missing required Firebase config field: {field}")
+        
+        cred = credentials.Certificate(firebase_config)
+        firebase_admin.initialize_app(cred)
+    
+    db = firestore.client()
+    logger.info("✅ Firebase initialized successfully")
+    
 except Exception as e:
     logger.error(f"❌ Firebase initialization failed: {str(e)}")
     db = None
@@ -910,7 +908,7 @@ def run_bot():
     """Запуск бота в отдельном процессе"""
     try:
         logger.info("🤖 Starting Telegram bot in separate process...")
-        subprocess.Popen([sys.executable, "bot.py"])
+        subprocess.run([sys.executable, "bot.py"], check=True)
     except Exception as e:
         logger.error(f"❌ Bot execution error: {e}")
 

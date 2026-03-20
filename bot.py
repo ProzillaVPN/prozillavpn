@@ -32,7 +32,7 @@ if not TOKEN:
 
 SUPPORT_NICK = os.getenv("SUPPORT_NICK", "@ProstyleLogo")
 TG_CHANNEL = os.getenv("TG_CHANNEL", "@prozillavpn")
-BOT_USERNAME = os.getenv("BOT_USERNAME", "ProzillaVPN_bot")
+BOT_USERNAME = os.getenv("BOT_USERNAME", "ProstyleLogo")
 
 # Лучше использовать отдельный URL, если есть
 APP_BASE_URL = os.getenv("APP_BASE_URL")

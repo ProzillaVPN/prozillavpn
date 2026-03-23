@@ -700,14 +700,31 @@
       <div class="tariff-card" id="tariff1month" onclick="selectTariff('1month')">
         <div class="tariff-dot"></div>
         <div class="tariff-label">1 Месяц</div>
-        <div class="tariff-price">150₽</div>
+        <div class="tariff-price">169₽</div>
         <div class="tariff-trial">30 дней</div>
         <div class="tariff-description">Доступ к VPN на 30 дней. Реферал пополняет баланс</div>
       </div>
+
+      <div class="tariff-card" id="tariff3months" onclick="selectTariff('3months')">
+        <div class="tariff-dot"></div>
+        <div class="tariff-label">3 Месяца</div>
+        <div class="tariff-price">399₽</div>
+        <div class="tariff-trial">90 дней</div>
+        <div class="tariff-description">Доступ к VPN на 90 дней. Реферал пополняет баланс</div>
+      </div>
+
+      <div class="tariff-card" id="tariff6months" onclick="selectTariff('6months')">
+        <div class="tariff-dot"></div>
+        <div class="tariff-label">6 Месяцев</div>
+        <div class="tariff-price">699₽</div>
+        <div class="tariff-trial">180 дней</div>
+        <div class="tariff-description">Доступ к VPN на 180 дней. Реферал пополняет баланс</div>
+      </div>
+
       <div class="tariff-card" id="tariff1year" onclick="selectTariff('1year')">
         <div class="tariff-dot"></div>
         <div class="tariff-label">1 Год</div>
-        <div class="tariff-price">1300₽</div>
+        <div class="tariff-price">1199₽</div>
         <div class="tariff-trial">365 дней</div>
         <div class="tariff-description">Доступ к VPN на 365 дней. Реферал пополняет баланс</div>
       </div>
@@ -715,8 +732,8 @@
     
     <div id="tariffPaymentInfo" style="display: none; margin: 12px 0; padding: 12px; background: #ff851a0d; border-radius: 8px;">
       <strong>При покупке подписки:</strong><br>
-      • Стоимость: <strong style="color: var(--primary);" id="tariffPrice">150₽</strong><br>
-      • Период: <strong id="tariffPeriod">30 дней</strong><br>
+      • Стоимость: <strong style="color: var(--primary);" id="tariffPrice">—</strong><br>
+      • Период: <strong id="tariffPeriod">—</strong><br>
       • Реферал: <strong>+50₽ на ваш баланс</strong><br>
       • После оплата: <strong>Подписка активируется сразу</strong>
     </div>
@@ -805,8 +822,10 @@
     let isInitialized = false;
 
     const tariffPlans = {
-      '1month': { id: '1month', name: '1 Месяц', price: 150, days: 30 },
-      '1year': { id: '1year', name: '1 Год', price: 1300, days: 365 }
+      '1month': { id: '1month', name: '1 Месяц', price: 169, days: 30 },
+      '3months': { id: '3months', name: '3 Месяца', price: 399, days: 90 },
+      '6months': { id: '6months', name: '6 Месяцев', price: 699, days: 180 },
+      '1year': { id: '1year', name: '1 Год', price: 1199, days: 365 }
     };
 
     // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================

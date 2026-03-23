@@ -98,12 +98,22 @@ VLESS_SERVERS = [
 TARIFFS = {
     "1month": {
         "name": "1 Месяц",
-        "price": 150.0,
+        "price": 169.0,
         "days": 30
+    },
+    "3months": {
+        "name": "3 Месяца",
+        "price": 399.0,
+        "days": 90
+    },
+    "6months": {
+        "name": "6 Месяцев",
+        "price": 699.0,
+        "days": 180
     },
     "1year": {
         "name": "1 Год",
-        "price": 1300.0,
+        "price": 1199.0,
         "days": 365
     }
 }

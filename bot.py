@@ -554,6 +554,27 @@ async def refresh_vless_handler(callback: types.CallbackQuery):
 
     await callback.answer("✅ Конфигурация обновлена")
 
+@dp.message(Command("testvpn"))
+async def test_vpn(message: types.Message):
+    user_id = message.from_user.id
+    email = f"user_{user_id}"
+
+    xray = XrayManager()
+    success, result = await xray.add_user(email=email)
+
+    if not success:
+        await message.answer(f"❌ Ошибка создания ключа: {result}")
+        return
+
+    user_uuid = result
+    vless_key = generate_vless_key(user_uuid, email)
+
+    await message.answer(
+        "✅ VPN ключ создан:\n\n"
+        f"`{vless_key}`",
+        parse_mode="Markdown"
+    )
+
 
 async def run_bot():
     logger.info("🔄 BOT VERSION 2.1 - RAILWAY SAFE")

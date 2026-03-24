@@ -117,24 +117,3 @@ def generate_vless_key(uuid_str: str, email: str) -> str:
         f"&encryption=none"
         f"#{remark}"
     )
-
-@dp.message(Command("testvpn"))
-async def test_vpn(message: types.Message):
-    user_id = message.from_user.id
-    email = f"user_{user_id}"
-
-    xray = XrayManager()
-    success, result = await xray.add_user(email=email)
-
-    if not success:
-        await message.answer(f"❌ Не удалось создать VPN ключ\nОшибка: {result}")
-        return
-
-    user_uuid = result
-    vless_key = generate_vless_key(user_uuid, email)
-
-    await message.answer(
-        "✅ Тестовый VPN ключ создан:\n\n"
-        f"`{vless_key}`",
-        parse_mode="Markdown"
-    )

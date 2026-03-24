@@ -12,6 +12,8 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from aiogram.types import WebAppInfo, LinkPreviewOptions
 
+from xray_manager import XrayManager, generate_vless_key
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -472,24 +474,39 @@ async def vless_handler(message: types.Message):
 
 @dp.message(Command("testvpn"))
 async def test_vpn(message: types.Message):
-    user_id = message.from_user.id
-    email = f"user_{user_id}"
+    try:
+        user_id = message.from_user.id
+        email = f"user_{user_id}"
 
-    xray = XrayManager()
-    success, result = await xray.add_user(email=email)
+        xray = XrayManager()
+        success, result = await xray.add_user(email=email)
 
-    if not success:
-        await message.answer(f"❌ Ошибка создания ключа: {result}")
-        return
+        if not success:
+            await message.answer(f"❌ Ошибка создания ключа:\n<code>{result}</code>")
+            return
 
-    user_uuid = result
-    vless_key = generate_vless_key(user_uuid, email)
+        user_uuid = result
+        vless_key = generate_vless_key(user_uuid, email)
 
-    await message.answer(
-        "✅ VPN ключ создан:\n\n"
-        f"`{vless_key}`",
-        parse_mode="Markdown"
-    )
+        await message.answer(
+            f"✅ VPN ключ создан:\n\n<code>{vless_key}</code>"
+        )
+
+    except Exception as e:
+        logger.exception("Ошибка в /testvpn")
+        await message.answer(f"❌ Критическая ошибка:\n<code>{str(e)}</code>")
+
+@dp.message(Command("testapi"))
+async def test_api(message: types.Message):
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get("http://72.56.22.233:8002/")
+            await message.answer(
+                f"Status: {response.status_code}\n\n"
+                f"Body:\n<code>{response.text[:1000]}</code>"
+            )
+    except Exception as e:
+        await message.answer(f"API error: <code>{str(e)}</code>")
 
 @dp.callback_query(F.data == "back_to_menu")
 async def back_to_menu_handler(callback: types.CallbackQuery):

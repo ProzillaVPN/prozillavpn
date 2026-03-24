@@ -51,47 +51,66 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Конфигурация серверов
 XRAY_SERVERS = {
-    "London": {
-        "url": "http://45.134.13.189:8001",
-        "api_key": "d67764b644f977a3edd4a6fb3cee00f1b89a406c1a86a662f490e797b7ea2367",  
-        "display_name": "London",
-        "api_url": "http://45.134.13.189:8002",  
-        "reality_pbk": "Mue7dfZz2BXeu_p4u2moigD8243gmcnO5ohEjLzGYR0",
-        "ssh_host": "45.134.13.189"
-    },
-    "Netherlands": {
-        "url": "http://103.75.126.91:8001",  
-        "api_key": "6e6fb03c83484749d7bf1d3ca0d130fbfee3854c4a8ce84fc8aabfeaa2c19fd1",  
-        "display_name": "Netherlands",
-        "api_url": "http://103.75.126.91:8002",  
-        "reality_pbk": "biUkzZNhzbhq_b8jcw2_xbpyAQPojjG_icyZ_syWdm8",
-        "ssh_host": "103.75.126.91"
+    "Amsterdam": {
+        "url": "http://72.56.22.233:8002",
+        "api_key": "daf9f2b078551349b17d039c3be16203dd04f0289ef24f08132f46a3826a4f38",
+        "display_name": "Amsterdam",
+        "api_url": "http://72.56.22.233:8002",
+        "reality_pbk": "0Mo9wqMaok4mUY1VClr3LCdLV-TPgStvokevS91z6nw",
+        "ssh_host": "72.56.22.233"
     }
+    # "London": {
+    #     "url": "http://45.134.13.189:8001",
+    #     "api_key": "d67764b644f977a3edd4a6fb3cee00f1b89a406c1a86a662f490e797b7ea2367",  
+    #     "display_name": "London",
+    #     "api_url": "http://45.134.13.189:8002",  
+    #     "reality_pbk": "Mue7dfZz2BXeu_p4u2moigD8243gmcnO5ohEjLzGYR0",
+    #     "ssh_host": "45.134.13.189"
+    # },
+    # "Netherlands": {
+    #     "url": "http://103.75.126.91:8001",  
+    #     "api_key": "6e6fb03c83484749d7bf1d3ca0d130fbfee3854c4a8ce84fc8aabfeaa2c19fd1",  
+    #     "display_name": "Netherlands",
+    #     "api_url": "http://103.75.126.91:8002",  
+    #     "reality_pbk": "biUkzZNhzbhq_b8jcw2_xbpyAQPojjG_icyZ_syWdm8",
+    #     "ssh_host": "103.75.126.91"
+    # }
 }
 
 VLESS_SERVERS = [
     {
-        "id": "London", 
-        "name": "London",
-        "address": "45.134.13.189",
+        "id": "Amsterdam",
+        "name": "Amsterdam",
+        "address": "72.56.22.233",
         "port": 2053,
         "sni": "www.google.com",
-        "reality_pbk": "Mue7dfZz2BXeu_p4u2moigD8243gmcnO5ohEjLzGYR0",
-        "short_id": "abcd1234",
-        "flow": "xtls-rprx-vision",
-        "security": "reality"
-    },
-    {
-        "id": "Netherlands", 
-        "name": "Netherlands",
-        "address": "103.75.126.91", 
-        "port": 2053,
-        "sni": "www.google.com",
-        "reality_pbk": "biUkzZNhzbhq_b8jcw2_xbpyAQPojjG_icyZ_syWdm8",
-        "short_id": "abcd1234",
+        "reality_pbk": "0Mo9wqMaok4mUY1VClr3LCdLV-TPgStvokevS91z6nw",
+        "short_id": "653913be",
         "flow": "xtls-rprx-vision",
         "security": "reality"
     }
+    # {
+    #     "id": "London", 
+    #     "name": "London",
+    #     "address": "45.134.13.189",
+    #     "port": 2053,
+    #     "sni": "www.google.com",
+    #     "reality_pbk": "Mue7dfZz2BXeu_p4u2moigD8243gmcnO5ohEjLzGYR0",
+    #     "short_id": "abcd1234",
+    #     "flow": "xtls-rprx-vision",
+    #     "security": "reality"
+    # },
+    # {
+    #     "id": "Netherlands", 
+    #     "name": "Netherlands",
+    #     "address": "103.75.126.91", 
+    #     "port": 2053,
+    #     "sni": "www.google.com",
+    #     "reality_pbk": "biUkzZNhzbhq_b8jcw2_xbpyAQPojjG_icyZ_syWdm8",
+    #     "short_id": "abcd1234",
+    #     "flow": "xtls-rprx-vision",
+    #     "security": "reality"
+    # }
 ]
 
 # Тарифы

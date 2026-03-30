@@ -323,6 +323,8 @@ async def add_user_to_xray_server(server_id: str, user_id: str, user_uuid: str) 
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(api_url, json=payload, headers=headers)
+            print("STATUS:", response.status_code)
+            print("BODY:", response.text)
             
             if response.status_code == 200:
                 result = response.json()
@@ -1239,7 +1241,7 @@ async def add_balance(request: AddBalanceRequest):
 
                 "receipt": {
                     "customer": {
-                        "email": f"user{request.user_id}@example.com"
+                        "email": f"user{request.user_id}@gmail.com"
                     },
                     "items": [
                         {
@@ -1249,7 +1251,7 @@ async def add_balance(request: AddBalanceRequest):
                                 "value": f"{request.amount:.2f}",
                                 "currency": "RUB"
                             },
-                            "vat_code": 4
+                            "vat_code": 1
                         }
                     ]
                 },
@@ -1273,6 +1275,8 @@ async def add_balance(request: AddBalanceRequest):
                     json=yookassa_data,
                     timeout=30.0
                 )
+                print("STATUS:", response.status_code)
+                print("BODY:", response.text)
             
             if response.status_code in [200, 201]:
                 payment_data = response.json()
@@ -1387,7 +1391,7 @@ async def activate_tariff(request: ActivateTariffRequest):
 
                 "receipt": {
                     "customer": {
-                        "email": f"user{request.user_id}@example.com"
+                        "email": f"user{request.user_id}@gmail.com"
                     },
                     "items": [
                         {
@@ -1397,7 +1401,7 @@ async def activate_tariff(request: ActivateTariffRequest):
                                 "value": f"{tariff_price:.2f}",
                                 "currency": "RUB"
                             },
-                            "vat_code": 4
+                            "vat_code": 1
                         }
                     ]
                 },
@@ -1423,6 +1427,8 @@ async def activate_tariff(request: ActivateTariffRequest):
                     json=yookassa_data,
                     timeout=30.0
                 )
+                print("STATUS:", response.status_code)
+                print("BODY:", response.text)
             
             if response.status_code in [200, 201]:
                 payment_data = response.json()

@@ -1230,9 +1230,30 @@ async def add_balance(request: AddBalanceRequest):
             
             yookassa_data = {
                 "amount": {"value": f"{request.amount:.2f}", "currency": "RUB"},
-                "confirmation": {"type": "redirect", "return_url": "https://t.me/ProzillaVPN_bot"},
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": "https://t.me/ProzillaVPN_bot"
+                },
                 "capture": True,
                 "description": f"Пополнение баланса ProzillaVPN на {request.amount}₽",
+
+                "receipt": {
+                    "customer": {
+                        "email": f"user{request.user_id}@example.com"
+                    },
+                    "items": [
+                        {
+                            "description": "Пополнение баланса",
+                            "quantity": "1.00",
+                            "amount": {
+                                "value": f"{request.amount:.2f}",
+                                "currency": "RUB"
+                            },
+                            "vat_code": 4
+                        }
+                    ]
+                },
+
                 "metadata": {
                     "payment_id": payment_id,
                     "user_id": request.user_id,
@@ -1340,11 +1361,47 @@ async def activate_tariff(request: ActivateTariffRequest):
             payment_id = str(uuid.uuid4())
             save_payment(payment_id, request.user_id, tariff_price, request.tariff, "tariff", "yookassa", selected_server)
             
+            # yookassa_data = {
+            #     "amount": {"value": f"{tariff_price:.2f}", "currency": "RUB"},
+            #     "confirmation": {"type": "redirect", "return_url": "https://t.me/ProzillaVPN_bot"},
+            #     "capture": True,
+            #     "description": f"Покупка подписки {tariff_data['name']} - ProzillaVPN (Сервер: {selected_server})",
+            #     "metadata": {
+            #         "payment_id": payment_id,
+            #         "user_id": request.user_id,
+            #         "tariff": request.tariff,
+            #         "payment_type": "tariff",
+            #         "tariff_days": tariff_days,
+            #         "selected_server": selected_server
+            #     }
+            # }
+
             yookassa_data = {
                 "amount": {"value": f"{tariff_price:.2f}", "currency": "RUB"},
-                "confirmation": {"type": "redirect", "return_url": "https://t.me/ProzillaVPN_bot"},
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": "https://t.me/ProzillaVPN_bot"
+                },
                 "capture": True,
-                "description": f"Покупка подписки {tariff_data['name']} - ProzillaVPN (Сервер: {selected_server})",
+                "description": f"Подписка {tariff_data['name']} ProzillaVPN",
+
+                "receipt": {
+                    "customer": {
+                        "email": f"user{request.user_id}@example.com"
+                    },
+                    "items": [
+                        {
+                            "description": f"VPN подписка {tariff_data['name']}",
+                            "quantity": "1.00",
+                            "amount": {
+                                "value": f"{tariff_price:.2f}",
+                                "currency": "RUB"
+                            },
+                            "vat_code": 4
+                        }
+                    ]
+                },
+
                 "metadata": {
                     "payment_id": payment_id,
                     "user_id": request.user_id,

@@ -1253,7 +1253,9 @@ async def add_balance(request: AddBalanceRequest):
                                 "value": f"{request.amount:.2f}",
                                 "currency": "RUB"
                             },
-                            "vat_code": 1
+                            "vat_code": 1,
+                            "payment_subject": "service",
+                            "payment_mode": "full_payment"
                         }
                     ]
                 },
@@ -1405,7 +1407,9 @@ async def activate_tariff(request: ActivateTariffRequest):
                                 "value": f"{tariff_price:.2f}",
                                 "currency": "RUB"
                             },
-                            "vat_code": 1
+                            "vat_code": 1,
+                            "payment_subject": "service",
+                            "payment_mode": "full_payment"
                         }
                     ]
                 },

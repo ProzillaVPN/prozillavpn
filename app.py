@@ -323,8 +323,10 @@ async def add_user_to_xray_server(server_id: str, user_id: str, user_uuid: str) 
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(api_url, json=payload, headers=headers)
+            print("\n=== YOOKASSA DEBUG ===")
             print("STATUS:", response.status_code)
             print("BODY:", response.text)
+            print("=====================\n")
             
             if response.status_code == 200:
                 result = response.json()
@@ -1275,8 +1277,10 @@ async def add_balance(request: AddBalanceRequest):
                     json=yookassa_data,
                     timeout=30.0
                 )
+                print("\n=== YOOKASSA DEBUG ===")
                 print("STATUS:", response.status_code)
                 print("BODY:", response.text)
+                print("=====================\n")
             
             if response.status_code in [200, 201]:
                 payment_data = response.json()
@@ -1427,8 +1431,10 @@ async def activate_tariff(request: ActivateTariffRequest):
                     json=yookassa_data,
                     timeout=30.0
                 )
+                print("\n=== YOOKASSA DEBUG ===")
                 print("STATUS:", response.status_code)
                 print("BODY:", response.text)
+                print("=====================\n")
             
             if response.status_code in [200, 201]:
                 payment_data = response.json()

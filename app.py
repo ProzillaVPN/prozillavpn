@@ -586,15 +586,17 @@ def create_user_vless_configs(user_id: str, vless_uuid: str, server_id: str = No
         if security == "reality":
             clean_sni = sni.replace(":443", "") if sni else ""
             vless_link = (
-                f"vless://{vless_uuid}@{address}:{port}?"
-                f"type=tcp&"
-                f"security=reality&"
-                f"flow={flow}&"
-                f"pbk={reality_pbk}&"
-                f"fp=chrome&"
-                f"sni={clean_sni}&"
-                f"sid={short_id}#"
-                f"Prozilla-VPN-{user_id}-{server['id']}"
+                f"vless://{vless_uuid}@{address}:{port}"
+                f"?type=tcp"
+                f"&security=reality"
+                f"&pbk={reality_pbk}"
+                f"&fp=chrome"
+                f"&sni={clean_sni}"
+                f"&sid={short_id}"
+                f"&spx=%2F"
+                f"&flow="
+                f"&encryption=none"
+                f"#ProzillaVPN-{user_id}-{server['id']}"
             )
         else:
             vless_link = (
@@ -602,7 +604,7 @@ def create_user_vless_configs(user_id: str, vless_uuid: str, server_id: str = No
                 f"encryption=none&"
                 f"type=tcp&"
                 f"security=none#"
-                f"Prozilla-VPN-{user_id}-{server['id']}"
+                f"ProzillaVPN-{user_id}-{server['id']}"
             )
         
         config = {

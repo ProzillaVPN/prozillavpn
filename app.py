@@ -56,7 +56,7 @@ XRAY_SERVERS = {
         "api_key": "daf9f2b078551349b17d039c3be16203dd04f0289ef24f08132f46a3826a4f38",
         "display_name": "Amsterdam",
         "api_url": "http://72.56.22.233:8002",
-        "reality_pbk": "0Mo9wqMaok4mUY1VClr3LCdLV-TPgStvokevS91z6nw",
+        "reality_pbk": "iD8DdcMv8KUDhdM6Khntu36PCfCMGm2XQOI3ma2JFhk",
         "ssh_host": "72.56.22.233"
     }
     # "London": {
@@ -84,7 +84,7 @@ VLESS_SERVERS = [
         "address": "72.56.22.233",
         "port": 2053,
         "sni": "www.google.com",
-        "reality_pbk": "0Mo9wqMaok4mUY1VClr3LCdLV-TPgStvokevS91z6nw",
+        "reality_pbk": "iD8DdcMv8KUDhdM6Khntu36PCfCMGm2XQOI3ma2JFhk",
         "short_id": "653913be",
         "flow": "xtls-rprx-vision",
         "security": "reality"

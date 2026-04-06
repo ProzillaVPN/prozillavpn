@@ -23,6 +23,23 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from xray_manager import XrayManager, generate_vless_key
+
+def get_payment_by_id(payment_id: str):
+    try:
+        if not db:
+            return None
+
+        doc = db.collection("payments").document(payment_id).get()
+
+        if doc.exists:
+            return doc.to_dict()
+
+        return None
+
+    except Exception as e:
+        logger.error(f"❌ Firestore error: {e}")
+        return None
 
 logging.basicConfig(
     level=logging.INFO,
@@ -86,7 +103,7 @@ VLESS_SERVERS = [
         "sni": "www.google.com",
         "reality_pbk": "iD8DdcMv8KUDhdM6Khntu36PCfCMGm2XQOI3ma2JFhk",
         "short_id": "653913be",
-        "flow": "xtls-rprx-vision",
+        "flow": "",
         "security": "reality"
     }
     # {
@@ -300,46 +317,43 @@ async def check_user_in_xray(user_uuid: str, server_id: str = None) -> bool:
         return False
 
 async def add_user_to_xray_server(server_id: str, user_id: str, user_uuid: str) -> bool:
-    """Добавить пользователя на сервер Xray через прямой API вызов"""
+    """Добавить пользователя на сервер Xray через корректный API вызов."""
     try:
         if server_id not in XRAY_SERVERS:
             logger.error(f"❌ Unknown server: {server_id}")
             return False
-        
+
         server_config = XRAY_SERVERS[server_id]
         api_url = f"{server_config['api_url']}/add-user"
-        
+        email = f"user_{user_id}"
+
         payload = {
-            "user_id": user_id,
+            "email": email,
             "uuid": user_uuid
         }
-        
+
         headers = {
             "Authorization": f"Bearer {server_config['api_key']}",
             "Content-Type": "application/json"
         }
-        
-        logger.info(f"🚀 Sending user {user_id} to {server_id} via API: {api_url}")
-        
+
+        logger.info(f"🚀 Syncing user {user_id} to {server_id} via API: {api_url}")
+
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(api_url, json=payload, headers=headers)
-            print("\n=== YOOKASSA DEBUG ===")
-            print("STATUS:", response.status_code)
-            print("BODY:", response.text)
-            print("=====================\n")
-            
-            if response.status_code == 200:
-                result = response.json()
-                if result.get("success"):
-                    logger.info(f"✅ User {user_id} successfully added to {server_id}")
-                    return True
-                else:
-                    logger.error(f"❌ API returned error for {server_id}: {result.get('error')}")
-                    return False
-            else:
-                logger.error(f"❌ API call failed for {server_id}: {response.status_code} - {response.text}")
-                return False
-                
+
+        if response.status_code != 200:
+            logger.error(f"❌ API call failed for {server_id}: {response.status_code} - {response.text}")
+            return False
+
+        result = response.json()
+        if result.get("success"):
+            logger.info(f"✅ User {user_id} successfully added to {server_id}")
+            return True
+
+        logger.error(f"❌ API returned error for {server_id}: {result.get('error')}")
+        return False
+
     except Exception as e:
         logger.error(f"❌ Error calling Xray API for {server_id}: {e}")
         return False
@@ -402,68 +416,74 @@ def generate_user_uuid():
     return str(uuid.uuid4())
 
 async def ensure_user_uuid(user_id: str, server_id: str = None) -> str:
-    """Гарантирует что у пользователя есть UUID и он добавлен в Xray - СУПЕР БЫСТРО"""
+    """Гарантирует, что у пользователя есть UUID."""
     if not db:
         raise Exception("Database not connected")
-    
+
     try:
         user_ref = db.collection('users').document(user_id)
         user = user_ref.get()
-        
+
         if not user.exists:
             raise Exception("User not found")
-        
+
         user_data = user.to_dict()
         vless_uuid = user_data.get('vless_uuid')
-        
+
         if vless_uuid:
             logger.info(f"🔍 User {user_id} has existing UUID: {vless_uuid}")
-            
-            # БЫСТРОЕ ДОБАВЛЕНИЕ: не проверяем, просто добавляем
-            servers_to_add = [server_id] if server_id else list(XRAY_SERVERS.keys())
-            
-            # Запускаем добавление асинхронно без ожидания
-            asyncio.create_task(fast_add_to_xray(vless_uuid, servers_to_add))
-            
             return vless_uuid
-        
-        # Генерируем новый UUID
+
         new_uuid = generate_user_uuid()
         logger.info(f"🆕 Generating new UUID for user {user_id}: {new_uuid}")
-        
-        # Обновляем пользователя
+
         user_ref.update({
             'vless_uuid': new_uuid,
             'updated_at': firestore.SERVER_TIMESTAMP
         })
-        
-        # Быстро добавляем на серверы
-        servers_to_add = [server_id] if server_id else list(XRAY_SERVERS.keys())
-        asyncio.create_task(fast_add_to_xray(new_uuid, servers_to_add))
-        
+
         return new_uuid
-        
+
     except Exception as e:
         logger.error(f"❌ Error ensuring user UUID: {e}")
         raise
 
+
+async def sync_user_to_xray(user_id: str, user_uuid: str, server_id: str = None) -> List[str]:
+    """Синхронно добавляет пользователя в нужные Xray-серверы и возвращает список готовых серверов."""
+    target_servers = [server_id] if server_id else [server["id"] for server in VLESS_SERVERS if server["id"] in XRAY_SERVERS]
+
+    if not target_servers:
+        logger.error("❌ No Xray servers available for sync")
+        return []
+
+    results = await asyncio.gather(
+        *(add_user_to_xray_server(target_server, user_id, user_uuid) for target_server in target_servers),
+        return_exceptions=True
+    )
+
+    ready_servers = []
+    for target_server, result in zip(target_servers, results):
+        if result is True:
+            ready_servers.append(target_server)
+        else:
+            logger.error(f"❌ Xray sync failed for {target_server}: {result}")
+
+    return ready_servers
+
+
 async def fast_add_to_xray(user_uuid: str, servers_to_add):
-    """Быстрое добавление в Xray без блокировки основного потока"""
+    """Совместимость со старым кодом: теперь использует корректный endpoint add-user."""
     try:
         for server_name in servers_to_add:
             if server_name in XRAY_SERVERS:
                 try:
-                    async with httpx.AsyncClient() as client:
-                        await client.post(
-                            f"{XRAY_SERVERS[server_name]['url']}/user",
-                            headers={
-                                "X-API-Key": XRAY_SERVERS[server_name]["api_key"],
-                                "Content-Type": "application/json"
-                            },
-                            json={"uuid": user_uuid},
-                            timeout=5.0
-                        )
-                    logger.info(f"⚡ FAST: User {user_uuid} sent to {server_name}")
+                    pseudo_user_id = f"sync_{user_uuid}"
+                    ok = await add_user_to_xray_server(server_name, pseudo_user_id, user_uuid)
+                    if ok:
+                        logger.info(f"⚡ FAST: User {user_uuid} synced to {server_name}")
+                    else:
+                        logger.warning(f"⚠️ Fast add failed for {server_name}")
                 except Exception as e:
                     logger.warning(f"⚠️ Fast add failed for {server_name}: {e}")
     except Exception as e:
@@ -558,7 +578,7 @@ def update_vless_key_status(user_id: str, server_id: str, is_active: bool):
         logger.error(f"❌ Error updating VLESS key status: {e}")
         return False
 
-def create_user_vless_configs(user_id: str, vless_uuid: str, server_id: str = None) -> List[dict]:
+def create_user_vless_configs(user_id: str, vless_uuid: str, server_id: str = None, allowed_server_ids: Optional[List[str]] = None) -> List[dict]:
     """Создает VLESS конфигурации для пользователя и сохраняет в БД"""
     
     configs = []
@@ -573,6 +593,10 @@ def create_user_vless_configs(user_id: str, vless_uuid: str, server_id: str = No
             servers_to_process = VLESS_SERVERS
     else:
         servers_to_process = VLESS_SERVERS
+
+    if allowed_server_ids is not None:
+        allowed_set = set(allowed_server_ids)
+        servers_to_process = [server for server in servers_to_process if server["id"] in allowed_set]
     
     for server in servers_to_process:
         address = server["address"]
@@ -585,18 +609,21 @@ def create_user_vless_configs(user_id: str, vless_uuid: str, server_id: str = No
         
         if security == "reality":
             clean_sni = sni.replace(":443", "") if sni else ""
+            query_parts = [
+                "type=tcp",
+                "security=reality",
+                f"pbk={reality_pbk}",
+                "fp=chrome",
+                f"sni={clean_sni}",
+                f"sid={short_id}",
+                "spx=%2F",
+                "encryption=none",
+            ]
+            if flow:
+                query_parts.append(f"flow={flow}")
             vless_link = (
-                f"vless://{vless_uuid}@{address}:{port}"
-                f"?type=tcp"
-                f"&security=reality"
-                f"&pbk={reality_pbk}"
-                f"&fp=chrome"
-                f"&sni={clean_sni}"
-                f"&sid={short_id}"
-                f"&spx=%2F"
-                f"&flow="
-                f"&encryption=none"
-                f"#ProzillaVPN-{user_id}-{server['id']}"
+                f"vless://{vless_uuid}@{address}:{port}?{'&'.join(query_parts)}#"
+                f"Prozilla-VPN-{user_id}-{server['id']}"
             )
         else:
             vless_link = (
@@ -604,7 +631,7 @@ def create_user_vless_configs(user_id: str, vless_uuid: str, server_id: str = No
                 f"encryption=none&"
                 f"type=tcp&"
                 f"security=none#"
-                f"ProzillaVPN-{user_id}-{server['id']}"
+                f"Prozilla-VPN-{user_id}-{server['id']}"
             )
         
         config = {
@@ -887,11 +914,16 @@ async def update_subscription_days(user_id: str, additional_days: int, server_id
             if has_subscription:
                 try:
                     vless_uuid = await ensure_user_uuid(user_id, server_id)
+                    ready_servers = await sync_user_to_xray(user_id, vless_uuid, server_id)
+                    if not ready_servers:
+                        logger.error(f"❌ FAILED to sync user {user_id} with Xray")
+                        return False
+
                     update_data['vless_uuid'] = vless_uuid
-                    
+
                     if not user_data.get('subscription_start'):
                         update_data['subscription_start'] = datetime.now().isoformat()
-                        
+
                 except Exception as e:
                     logger.error(f"❌ FAILED to ensure UUID for user {user_id}: {e}")
                     return False
@@ -1234,6 +1266,19 @@ async def add_balance(request: AddBalanceRequest):
             payment_id = str(uuid.uuid4())
             save_payment(payment_id, request.user_id, request.amount, "balance", "balance", "yookassa")
             
+            # yookassa_data = {
+            #     "amount": {"value": f"{request.amount:.2f}", "currency": "RUB"},
+            #     "confirmation": {"type": "redirect", "return_url": "https://t.me/ProzillaVPN_bot"},
+            #     "capture": True,
+            #     "description": f"Пополнение баланса ProzillaVPN на {request.amount}₽",
+            #     "metadata": {
+            #         "payment_id": payment_id,
+            #         "user_id": request.user_id,
+            #         "payment_type": "balance",
+            #         "amount": request.amount
+            #     }
+            # }
+
             yookassa_data = {
                 "amount": {"value": f"{request.amount:.2f}", "currency": "RUB"},
                 "confirmation": {
@@ -1281,10 +1326,6 @@ async def add_balance(request: AddBalanceRequest):
                     json=yookassa_data,
                     timeout=30.0
                 )
-                print("\n=== YOOKASSA DEBUG ===")
-                print("STATUS:", response.status_code)
-                print("BODY:", response.text)
-                print("=====================\n")
             
             if response.status_code in [200, 201]:
                 payment_data = response.json()
@@ -1312,47 +1353,77 @@ async def activate_tariff(request: ActivateTariffRequest):
     try:
         if not db:
             return JSONResponse(status_code=500, content={"error": "Database not connected"})
-            
+
         user = get_user(request.user_id)
         if not user:
             return JSONResponse(status_code=404, content={"error": "User not found"})
-        
+
         if request.tariff not in TARIFFS:
             return JSONResponse(status_code=400, content={"error": "Invalid tariff"})
-            
+
         tariff_data = TARIFFS[request.tariff]
         tariff_price = tariff_data["price"]
         tariff_days = tariff_data["days"]
-        
-        selected_server = request.selected_server or user.get('preferred_server') or "London"
-        
+
+        selected_server = request.selected_server or user.get("preferred_server") or "London"
+
+        payment_id = str(uuid.uuid4())
+
+        # =========================
+        # 💳 BALANCE PAYMENT FLOW
+        # =========================
         if request.payment_method == "balance":
-            user_balance = user.get('balance', 0.0)
-            
+
+            user_balance = user.get("balance", 0.0)
+
             if user_balance < tariff_price:
-                return JSONResponse(status_code=400, content={"error": f"Недостаточно средств на балансе. Необходимо: {tariff_price}₽, доступно: {user_balance}₽"})
-            
-            payment_id = str(uuid.uuid4())
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": f"Недостаточно средств. Нужно: {tariff_price}₽, есть: {user_balance}₽"}
+                )
+
+            # save payment
             save_payment(payment_id, request.user_id, tariff_price, request.tariff, "tariff", "balance", selected_server)
-            
+
+            # deduct balance
             update_user_balance(request.user_id, -tariff_price)
-            
+
+            # activate subscription
             success = await update_subscription_days(request.user_id, tariff_days, selected_server)
-            
+
             if not success:
                 return JSONResponse(status_code=500, content={"error": "Ошибка активации подписки"})
-            
-            if user.get('referred_by'):
-                referrer_id = user['referred_by']
+
+            # =========================
+            # 🔑 CREATE VPN USER (ВАЖНО)
+            # =========================
+            try:
+                xray = XrayManager()
+                email = f"user_{request.user_id}"
+
+                success_xray, uuid = await xray.add_user(email=email)
+
+                if not success_xray:
+                    return JSONResponse(status_code=500, content={"error": "Failed to create VPN user"})
+
+                vless_link = generate_vless_key(uuid, email)
+
+            except Exception as e:
+                logger.error(f"Xray error: {e}")
+                return JSONResponse(status_code=500, content={"error": "VPN generation failed"})
+
+            # referral bonus
+            if user.get("referred_by"):
+                referrer_id = user["referred_by"]
                 referral_id = f"{referrer_id}_{request.user_id}"
-                
-                referral_exists = db.collection('referrals').document(referral_id).get().exists
-                
+
+                referral_exists = db.collection("referrals").document(referral_id).get().exists
+
                 if not referral_exists:
                     add_referral_bonus_immediately(referrer_id, request.user_id)
-            
+
             update_payment_status(payment_id, "succeeded")
-            
+
             return {
                 "success": True,
                 "payment_id": payment_id,
@@ -1360,33 +1431,22 @@ async def activate_tariff(request: ActivateTariffRequest):
                 "days": tariff_days,
                 "selected_server": selected_server,
                 "status": "succeeded",
-                "message": f"Подписка успешно активирована с баланса на сервере {selected_server}!"
+                "vless_link": vless_link,
+                "message": f"Подписка активирована + VPN создан на сервере {selected_server}"
             }
-        
+
+        # =========================
+        # 💳 YOOKASSA FLOW
+        # =========================
         elif request.payment_method == "yookassa":
+
             SHOP_ID = os.getenv("SHOP_ID")
             API_KEY = os.getenv("API_KEY")
-            
+
             if not SHOP_ID or not API_KEY:
                 return JSONResponse(status_code=500, content={"error": "Payment gateway not configured"})
-            
-            payment_id = str(uuid.uuid4())
+
             save_payment(payment_id, request.user_id, tariff_price, request.tariff, "tariff", "yookassa", selected_server)
-            
-            # yookassa_data = {
-            #     "amount": {"value": f"{tariff_price:.2f}", "currency": "RUB"},
-            #     "confirmation": {"type": "redirect", "return_url": "https://t.me/ProzillaVPN_bot"},
-            #     "capture": True,
-            #     "description": f"Покупка подписки {tariff_data['name']} - ProzillaVPN (Сервер: {selected_server})",
-            #     "metadata": {
-            #         "payment_id": payment_id,
-            #         "user_id": request.user_id,
-            #         "tariff": request.tariff,
-            #         "payment_type": "tariff",
-            #         "tariff_days": tariff_days,
-            #         "selected_server": selected_server
-            #     }
-            # }
 
             yookassa_data = {
                 "amount": {"value": f"{tariff_price:.2f}", "currency": "RUB"},
@@ -1425,7 +1485,7 @@ async def activate_tariff(request: ActivateTariffRequest):
                     "selected_server": selected_server
                 }
             }
-            
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     "https://api.yookassa.ru/v3/payments",
@@ -1437,31 +1497,26 @@ async def activate_tariff(request: ActivateTariffRequest):
                     json=yookassa_data,
                     timeout=30.0
                 )
-                print("\n=== YOOKASSA DEBUG ===")
-                print("STATUS:", response.status_code)
-                print("BODY:", response.text)
-                print("=====================\n")
-            
-            if response.status_code in [200, 201]:
-                payment_data = response.json()
-                update_payment_status(payment_id, "pending", payment_data.get("id"))
-                
-                return {
-                    "success": True,
-                    "payment_id": payment_id,
-                    "payment_url": payment_data["confirmation"]["confirmation_url"],
-                    "amount": tariff_price,
-                    "days": tariff_days,
-                    "selected_server": selected_server,
-                    "status": "pending",
-                    "message": f"Перейдите по ссылке для оплаты подписки на сервере {selected_server}"
-                }
-            else:
+
+            if response.status_code not in [200, 201]:
                 return JSONResponse(status_code=500, content={"error": f"Payment gateway error: {response.status_code}"})
-        
+
+            payment_data = response.json()
+            update_payment_status(payment_id, "pending", payment_data.get("id"))
+
+            return {
+                "success": True,
+                "payment_id": payment_id,
+                "payment_url": payment_data["confirmation"]["confirmation_url"],
+                "amount": tariff_price,
+                "days": tariff_days,
+                "selected_server": selected_server,
+                "status": "pending"
+            }
+
         else:
             return JSONResponse(status_code=400, content={"error": "Invalid payment method"})
-        
+
     except Exception as e:
         logger.error(f"❌ Error activating tariff: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -1651,12 +1706,18 @@ async def get_vless_config(user_id: str, server_id: str = None):
         if not user.get('has_subscription', False):
             return JSONResponse(status_code=400, content={"error": "No active subscription"})
         
-        # СУПЕР БЫСТРОЕ получение UUID
+        # Получаем UUID и дожидаемся реальной синхронизации с Xray
         vless_uuid = await ensure_user_uuid(user_id, server_id)
-        
-        # Мгновенное создание конфигов
-        configs = create_user_vless_configs(user_id, vless_uuid, server_id)
-        
+        ready_servers = await sync_user_to_xray(user_id, vless_uuid, server_id)
+
+        if not ready_servers:
+            return JSONResponse(status_code=502, content={"error": "Failed to sync user with Xray server"})
+
+        configs = create_user_vless_configs(user_id, vless_uuid, server_id, allowed_server_ids=ready_servers)
+
+        if not configs:
+            return JSONResponse(status_code=500, content={"error": "No ready VLESS configs available"})
+
         return {
             "success": True,
             "user_id": user_id,
@@ -1672,6 +1733,80 @@ async def get_vless_config(user_id: str, server_id: str = None):
     except Exception as e:
         logger.error(f"❌ Error getting VLESS config: {e}")
         return JSONResponse(status_code=500, content={"error": f"Error getting VLESS config: {str(e)}"})
+    
+@app.post("/check-payment")
+async def check_payment(data: dict):
+    try:
+        user_id = data.get("user_id")
+        tariff = data.get("tariff")
+
+        if not user_id or not tariff:
+            return {"paid": False}
+
+        # 👉 тут ты должен найти платеж в базе
+        # ВРЕМЕННО сделаем заглушку:
+
+        payment = get_last_payment(user_id, tariff)  # 👈 если есть функция
+
+        if not payment:
+            return {"paid": False}
+
+        if payment.get("status") != "succeeded":
+            return {"paid": False}
+
+        return {"paid": True}
+
+    except Exception as e:
+        logger.error(f"❌ check_payment error: {e}")
+        return {"paid": False}
+    
+@app.get("/check-payment")
+async def check_payment(payment_id: str, user_id: str):
+    try:
+        if not payment_id:
+            return {"status": "pending"}
+
+        # 👉 ищем платеж по payment_id
+        payment = get_payment_by_id(payment_id)  # СДЕЛАЙ ЭТУ ФУНКЦИЮ
+
+        if not payment:
+            return {"status": "pending"}
+
+        return {
+            "status": payment.get("status", "pending")
+        }
+
+    except Exception as e:
+        logger.error(f"❌ check_payment error: {e}")
+        return {"status": "error"}
+
+@app.post("/yookassa-webhook")
+async def yookassa_webhook(request: Request):
+    try:
+        data = await request.json()
+
+        event = data.get("event")
+        payment = data.get("object", {})
+
+        payment_id = payment.get("metadata", {}).get("payment_id")
+        yookassa_id = payment.get("id")
+
+        if not payment_id:
+            return {"ok": True}
+
+        # 🔥 УСПЕШНАЯ ОПЛАТА
+        if event == "payment.succeeded":
+            update_payment_status(payment_id, "succeeded", yookassa_id)
+
+        # ❌ ОТМЕНА
+        elif event == "payment.canceled":
+            update_payment_status(payment_id, "canceled", yookassa_id)
+
+        return {"ok": True}
+
+    except Exception as e:
+        logger.error(f"❌ Webhook error: {e}")
+        return {"ok": False}
 
 @app.post("/save-vless-key")
 async def save_vless_key(request: SaveVlessKeyRequest):

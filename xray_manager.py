@@ -120,16 +120,15 @@ def generate_vless_key(uuid_str: str, email: str) -> str:
     server_name = "www.google.com"
     remark = quote(email)
 
-    return (
-        f"vless://{uuid_str}@{server_ip}:{port}"
-        f"?type=tcp"
-        f"&security=reality"
-        f"&pbk={public_key}"
-        f"&fp=chrome"
-        f"&sni={server_name}"
-        f"&sid={short_id}"
-        f"&spx=%2F"
-        f"&flow="
-        f"&encryption=none"
-        f"#{remark}"
-    )
+    query_parts = [
+        "type=tcp",
+        "security=reality",
+        f"pbk={public_key}",
+        "fp=chrome",
+        f"sni={server_name}",
+        f"sid={short_id}",
+        "spx=%2F",
+        "encryption=none",
+    ]
+
+    return f"vless://{uuid_str}@{server_ip}:{port}?{'&'.join(query_parts)}#{remark}"

@@ -11,6 +11,7 @@ import threading
 import subprocess
 import sys
 import uuid
+import requests
 import httpx
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -1527,37 +1528,91 @@ async def activate_tariff_crypto(data: dict):
     tariff = data["tariff"]
 
     prices = {
-        "1month": 149,
+        "1month": 169,
         "3months": 399,
         "6months": 699,
-        "1year": 1188
+        "1year": 1199
     }
 
     amount = prices.get(tariff)
 
+    if not amount:
+        return {"error": "Invalid tariff"}
+
     order_id = f"{user_id}_{uuid.uuid4()}"
 
-    res = requests.post(
-        "https://api.heleket.com/payment",
-        json={
-            "amount": amount,
-            "currency": "RUB",
-            "order_id": order_id,
-            "callback_url": "https://your-domain.com/webhook"
-        },
-        headers={
-            "Authorization": "Bearer YOUR_API_KEY"
-        }
-    )
+    async with httpx.AsyncClient() as client:
+        res = await client.post(
+            "https://api.heleket.com/payment",
+            json={
+                "amount": amount,
+                "currency": "RUB",
+                "order_id": order_id,
+                "callback_url": "https://prozillavpn-production.up.railway.app/webhook"
+            },
+            headers={
+                "Authorization": "Bearer YOUR_API_KEY"
+            }
+        )
 
-    data = res.json()
+    response_data = res.json()
 
     save_payment(order_id, user_id, tariff, method="crypto")
 
     return {
-        "payment_url": data["payment_url"],
+        "payment_url": response_data.get("payment_url"),
         "payment_id": order_id
     }
+
+@app.post("/webhook")
+async def heleket_webhook(request: Request):
+    import hashlib
+    import hmac
+
+    SECRET = "YOUR_WEBHOOK_SECRET"  # тот же, что в Heleket
+
+    try:
+        body = await request.body()
+        json_data = await request.json()
+
+        # 🔐 проверка подписи
+        received_signature = request.headers.get("X-Signature")
+
+        expected_signature = hmac.new(
+            SECRET.encode(),
+            body,
+            hashlib.sha256
+        ).hexdigest()
+
+        if received_signature != expected_signature:
+            return {"error": "Invalid signature"}
+
+        # 📦 данные от Heleket
+        order_id = json_data.get("order_id")
+        status = json_data.get("status")  # paid / failed
+
+        if status != "paid":
+            return {"status": "ignored"}
+
+        # 📊 получаем платеж из базы
+        payment = get_payment(order_id)
+
+        if not payment:
+            return {"error": "Payment not found"}
+
+        user_id = payment["user_id"]
+        tariff = payment["tariff"]
+
+        # 🔥 АКТИВАЦИЯ ТАРИФА
+        activate_user_tariff(user_id, tariff)
+
+        # ✅ отмечаем оплату
+        update_payment_status(order_id, "paid")
+
+        return {"status": "success"}
+
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.post("/buy-with-balance")
 async def buy_with_balance(request: BuyWithBalanceRequest):

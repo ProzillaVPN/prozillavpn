@@ -1521,7 +1521,7 @@ async def activate_tariff(request: ActivateTariffRequest):
         logger.error(f"❌ Error activating tariff: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-@router.post("/activate-tariff-crypto")
+@app.post("/activate-tariff-crypto")
 async def activate_tariff_crypto(data: dict):
     user_id = data["user_id"]
     tariff = data["tariff"]

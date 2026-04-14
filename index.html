@@ -751,6 +751,11 @@
           <div class="payment-label">Картой</div>
           <div style="font-size: 11px; margin-top: 4px;">ЮKassa</div>
         </div>
+        <div class="payment-method" id="paymentCrypto" onclick="selectPaymentMethod('crypto')">
+          <div class="payment-icon">₿</div>
+          <div class="payment-label">Крипта</div>
+          <div style="font-size: 11px; margin-top: 4px;">USDT / BTC</div>
+        </div>
       </div>
     </div>
     
@@ -1668,7 +1673,22 @@
               tariff_days: tariff.days
             })
           });
-        } else {
+        }
+        else if (currentPaymentMethod === 'crypto') {
+          // 💰 КРИПТА (Heleket)
+          response = await fetchWithTimeout(`${API_BASE_URL}/activate-tariff-crypto`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              user_id: userId,
+              tariff: currentTariff
+            })
+          });
+
+        }  
+        else {
           // Оплата через ЮKassa
           response = await fetchWithTimeout(`${API_BASE_URL}/activate-tariff`, {
             method: "POST",
@@ -1701,7 +1721,22 @@
               getVlessConfig();
             }, 2000);
             
-          } else {
+          } 
+          else if (currentPaymentMethod === 'crypto') {
+            currentPaymentId = result.payment_id;
+            paymentUrl = result.payment_url;
+
+            if (paymentUrl) {
+              if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.openLink(paymentUrl);
+              } else {
+                window.open(paymentUrl, '_blank');
+              }
+
+              showSuccess('₿ Перевожу на оплату криптой...');
+            }
+          }
+          else {
             // Оплата через ЮKassa
             currentPaymentId = result.payment_id;
             paymentUrl = result.payment_url;

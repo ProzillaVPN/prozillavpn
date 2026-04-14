@@ -1521,6 +1521,44 @@ async def activate_tariff(request: ActivateTariffRequest):
         logger.error(f"❌ Error activating tariff: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@router.post("/activate-tariff-crypto")
+async def activate_tariff_crypto(data: dict):
+    user_id = data["user_id"]
+    tariff = data["tariff"]
+
+    prices = {
+        "1month": 149,
+        "3months": 399,
+        "6months": 699,
+        "1year": 1188
+    }
+
+    amount = prices.get(tariff)
+
+    order_id = f"{user_id}_{uuid.uuid4()}"
+
+    res = requests.post(
+        "https://api.heleket.com/payment",
+        json={
+            "amount": amount,
+            "currency": "RUB",
+            "order_id": order_id,
+            "callback_url": "https://your-domain.com/webhook"
+        },
+        headers={
+            "Authorization": "Bearer YOUR_API_KEY"
+        }
+    )
+
+    data = res.json()
+
+    save_payment(order_id, user_id, tariff, method="crypto")
+
+    return {
+        "payment_url": data["payment_url"],
+        "payment_id": order_id
+    }
+
 @app.post("/buy-with-balance")
 async def buy_with_balance(request: BuyWithBalanceRequest):
     try:

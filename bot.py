@@ -525,12 +525,26 @@ async def tariff_select(callback: types.CallbackQuery):
 
     builder = InlineKeyboardBuilder()
 
+    # builder.row(
+    #     types.InlineKeyboardButton(
+    #         text="💳 Перейти к оплате",
+    #         callback_data=f"pay_{tariff_key}"
+    #     )
+    # )
     builder.row(
         types.InlineKeyboardButton(
-            text="💳 Перейти к оплате",
-            callback_data=f"pay_{tariff_key}"
+            text="💳 Оплата картой",
+            callback_data=f"pay_card_{tariff_key}"
         )
     )
+
+    builder.row(
+        types.InlineKeyboardButton(
+            text="💰 Оплата криптой",
+            callback_data=f"pay_crypto_{tariff_key}"
+        )
+    )
+    
     builder.row(
         types.InlineKeyboardButton(
             text="🔙 Назад к тарифам",
@@ -544,6 +558,10 @@ async def tariff_select(callback: types.CallbackQuery):
 
 💰 <b>Цена:</b> {tariff['price']}₽
 📦 <b>Описание:</b> {tariff['desc']}
+
+⚡ <b>Способы оплаты:</b>
+💳 Карта — мгновенно
+💰 Крипта — 1–5 минут
 
 🔒 Оплата защищена и занимает менее 10 секунд
 ⚡ После оплаты доступ активируется автоматически
@@ -574,10 +592,10 @@ async def back_to_tariffs(callback: types.CallbackQuery):
 
     await callback.answer()
 
-@dp.callback_query(F.data.startswith("pay_"))
+@dp.callback_query(F.data.startswith("pay_card_"))
 async def create_payment(callback: types.CallbackQuery):
     user_id = callback.from_user.id
-    tariff_key = callback.data.replace("pay_", "")
+    tariff_key = callback.data.replace("pay_card_", "")
     tariff = TARIFFS.get(tariff_key)
 
     if not tariff:
@@ -640,6 +658,53 @@ async def create_payment(callback: types.CallbackQuery):
 🔒 После оплаты нажмите кнопку ниже
 ⚡ Активация происходит автоматически
         """,
+        reply_markup=builder.as_markup()
+    )
+
+    await callback.answer()
+
+@dp.callback_query(F.data.startswith("pay_crypto_"))
+async def create_crypto_payment(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    tariff_key = callback.data.replace("pay_crypto_", "")
+
+    await callback.message.edit_text(
+        "💰 <b>Создаём крипто оплату...</b>"
+    )
+
+    result = await make_api_request(
+        "/activate-tariff-crypto",
+        method="POST",
+        json_data={
+            "user_id": str(user_id),
+            "tariff": tariff_key
+        }
+    )
+
+    if result.get("error"):
+        await callback.message.answer(f"❌ Ошибка: {result['error']}")
+        return
+
+    payment_url = result.get("payment_url")
+    payment_id = result.get("payment_id")
+
+    builder = InlineKeyboardBuilder()
+
+    builder.row(
+        types.InlineKeyboardButton(text="💰 Оплатить криптой", url=payment_url)
+    )
+
+    builder.row(
+        types.InlineKeyboardButton(
+            text="✅ Я оплатил",
+            callback_data=f"check_{payment_id}"
+        )
+    )
+
+    await callback.message.edit_text(
+        "💰 <b>Оплата криптой</b>\n\n"
+        "Поддерживаются BTC, ETH, USDT и др.\n\n"
+        "После оплаты нажмите кнопку ниже 👇",
         reply_markup=builder.as_markup()
     )
 

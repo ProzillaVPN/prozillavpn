@@ -1341,10 +1341,11 @@ async def add_balance(request: AddBalanceRequest):
                     "message": f"Перейдите по ссылке для пополнения баланса на {request.amount}₽"
                 }
             else:
-                return JSONResponse(status_code=500, content={"error": f"Payment gateway error: {response.status_code}"})
+                logger.error(f"❌ YooKassa rejected (add-balance) {response.status_code}: {response.text}")
+                return JSONResponse(status_code=500, content={"error": f"Payment gateway error: {response.status_code}", "yookassa": response.text})
         else:
             return JSONResponse(status_code=400, content={"error": "Invalid payment method"})
-        
+
     except Exception as e:
         logger.error(f"❌ Error adding balance: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -1402,12 +1403,12 @@ async def activate_tariff(request: ActivateTariffRequest):
                 xray = XrayManager()
                 email = f"user_{request.user_id}"
 
-                success_xray, uuid = await xray.add_user(email=email)
+                success_xray, vpn_uuid = await xray.add_user(email=email)
 
                 if not success_xray:
                     return JSONResponse(status_code=500, content={"error": "Failed to create VPN user"})
 
-                vless_link = generate_vless_key(uuid, email)
+                vless_link = generate_vless_key(vpn_uuid, email)
 
             except Exception as e:
                 logger.error(f"Xray error: {e}")
@@ -1500,7 +1501,8 @@ async def activate_tariff(request: ActivateTariffRequest):
                 )
 
             if response.status_code not in [200, 201]:
-                return JSONResponse(status_code=500, content={"error": f"Payment gateway error: {response.status_code}"})
+                logger.error(f"❌ YooKassa rejected (activate-tariff) {response.status_code}: {response.text}")
+                return JSONResponse(status_code=500, content={"error": f"Payment gateway error: {response.status_code}", "yookassa": response.text})
 
             payment_data = response.json()
             update_payment_status(payment_id, "pending", payment_data.get("id"))

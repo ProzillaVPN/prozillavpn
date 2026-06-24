@@ -18,6 +18,9 @@ from firebase_admin import credentials, firestore
 from pydantic import BaseModel
 import re
 import json
+import base64
+import hashlib
+import hmac
 import urllib.parse
 from typing import List, Optional
 from PIL import Image, ImageDraw, ImageFont
@@ -1524,97 +1527,205 @@ async def activate_tariff(request: ActivateTariffRequest):
         logger.error(f"❌ Error activating tariff: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+# ============================================================
+# 💰 CRYPTO PAYMENTS (Heleket)
+# ============================================================
+# Heleket (Cryptomus-совместимый API) подписывает запросы так:
+#   sign = md5( base64( json_body ) + PAYMENT_API_KEY )
+# где json_body сериализован как PHP json_encode($data, JSON_UNESCAPED_UNICODE):
+# компактно (без пробелов), unicode не экранируется, слэши экранируются (/ -> \/).
+
+CRYPTO_CALLBACK_URL = "https://prozillavpn-production.up.railway.app/heleket-webhook"
+CRYPTO_RETURN_URL = "https://t.me/ProzillaVPN_bot"
+
+
+def _heleket_serialize(data: dict) -> str:
+    # Повторяем формат PHP json_encode(..., JSON_UNESCAPED_UNICODE)
+    return json.dumps(data, separators=(",", ":"), ensure_ascii=False).replace("/", "\\/")
+
+
+def _heleket_sign(data: dict, api_key: str) -> str:
+    payload = _heleket_serialize(data)
+    encoded = base64.b64encode(payload.encode("utf-8")).decode("utf-8")
+    return hashlib.md5((encoded + api_key).encode("utf-8")).hexdigest()
+
+
+async def _notify_user_payment_success(user_id: str, tariff: str, selected_server: str):
+    token = os.getenv("TOKEN")
+    if not token:
+        return
+    tariff_name = TARIFFS.get(tariff, {}).get("name", tariff)
+    text = (
+        "✅ Оплата криптой получена!\n\n"
+        f"Тариф «{tariff_name}» активирован на сервере {selected_server}.\n"
+        "Откройте приложение и нажмите «Получить конфигурацию»."
+    )
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                json={"chat_id": user_id, "text": text},
+                timeout=15.0,
+            )
+    except Exception as e:
+        logger.error(f"⚠️ Failed to notify user {user_id}: {e}")
+
+
 @app.post("/activate-tariff-crypto")
 async def activate_tariff_crypto(data: dict):
-    user_id = data["user_id"]
-    tariff = data["tariff"]
-
-    prices = {
-        "1month": 169,
-        "3months": 399,
-        "6months": 699,
-        "1year": 1199
-    }
-
-    amount = prices.get(tariff)
-
-    if not amount:
-        return {"error": "Invalid tariff"}
-
-    order_id = f"{user_id}_{uuid.uuid4()}"
-
-    async with httpx.AsyncClient() as client:
-        res = await client.post(
-            "https://api.heleket.com/payment",
-            json={
-                "amount": amount,
-                "currency": "RUB",
-                "order_id": order_id,
-                "callback_url": "https://prozillavpn-production.up.railway.app/webhook"
-            },
-            headers={
-                "Authorization": "Bearer YOUR_API_KEY"
-            }
-        )
-
-    response_data = res.json()
-
-    save_payment(order_id, user_id, tariff, method="crypto")
-
-    return {
-        "payment_url": response_data.get("payment_url"),
-        "payment_id": order_id
-    }
-
-@app.post("/webhook")
-async def heleket_webhook(request: Request):
-    import hashlib
-    import hmac
-
-    SECRET = "YOUR_WEBHOOK_SECRET"  # тот же, что в Heleket
-
     try:
-        body = await request.body()
-        json_data = await request.json()
+        if not db:
+            return JSONResponse(status_code=500, content={"success": False, "error": "Database not connected"})
 
-        # 🔐 проверка подписи
-        received_signature = request.headers.get("X-Signature")
+        user_id = str(data.get("user_id"))
+        tariff = data.get("tariff")
 
-        expected_signature = hmac.new(
-            SECRET.encode(),
-            body,
-            hashlib.sha256
-        ).hexdigest()
+        if tariff not in TARIFFS:
+            return JSONResponse(status_code=400, content={"success": False, "error": "Invalid tariff"})
 
-        if received_signature != expected_signature:
-            return {"error": "Invalid signature"}
+        MERCHANT_ID = os.getenv("HELEKET_MERCHANT_ID")
+        API_KEY = os.getenv("HELEKET_API_KEY")
+        if not MERCHANT_ID or not API_KEY:
+            return JSONResponse(status_code=500, content={"success": False, "error": "Crypto gateway not configured"})
 
-        # 📦 данные от Heleket
-        order_id = json_data.get("order_id")
-        status = json_data.get("status")  # paid / failed
+        user = get_user(user_id)
+        if not user:
+            return JSONResponse(status_code=404, content={"success": False, "error": "User not found"})
 
-        if status != "paid":
+        tariff_data = TARIFFS[tariff]
+        amount = tariff_data["price"]
+        tariff_days = tariff_data["days"]
+        selected_server = data.get("selected_server") or user.get("preferred_server") or "London"
+
+        order_id = f"{user_id}_{uuid.uuid4()}"
+
+        body = {
+            "amount": f"{amount:.2f}",
+            "currency": "RUB",
+            "order_id": order_id,
+            "lifetime": 3600,
+            "url_callback": CRYPTO_CALLBACK_URL,
+            "url_return": CRYPTO_RETURN_URL,
+            "url_success": CRYPTO_RETURN_URL,
+        }
+
+        payload = _heleket_serialize(body)
+        sign = _heleket_sign(body, API_KEY)
+
+        async with httpx.AsyncClient() as client:
+            res = await client.post(
+                "https://api.heleket.com/v1/payment",
+                content=payload.encode("utf-8"),
+                headers={
+                    "merchant": MERCHANT_ID,
+                    "sign": sign,
+                    "Content-Type": "application/json",
+                },
+                timeout=30.0,
+            )
+
+        if res.status_code not in (200, 201):
+            logger.error(f"❌ Heleket rejected {res.status_code}: {res.text}")
+            return JSONResponse(status_code=500, content={"success": False, "error": f"Crypto gateway error: {res.status_code}", "heleket": res.text})
+
+        response_data = res.json()
+        result = response_data.get("result") or {}
+        payment_url = result.get("url")
+
+        if not payment_url:
+            logger.error(f"❌ Heleket: no payment url in response: {response_data}")
+            return JSONResponse(status_code=500, content={"success": False, "error": "Crypto gateway error: no payment url"})
+
+        # save_payment(payment_id, user_id, amount, tariff, payment_type, payment_method, selected_server)
+        save_payment(order_id, user_id, amount, tariff, "tariff", "crypto", selected_server)
+        update_payment_status(order_id, "pending", result.get("uuid"))
+
+        return {
+            "success": True,
+            "payment_id": order_id,
+            "payment_url": payment_url,
+            "amount": amount,
+            "days": tariff_days,
+            "selected_server": selected_server,
+            "status": "pending",
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Error creating crypto payment: {e}")
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.post("/heleket-webhook")
+async def heleket_webhook(request: Request):
+    try:
+        API_KEY = os.getenv("HELEKET_API_KEY")
+        if not API_KEY:
+            logger.error("❌ Heleket webhook: gateway not configured")
+            return JSONResponse(status_code=500, content={"error": "not configured"})
+
+        data = await request.json()
+
+        # 🔐 проверка подписи: sign приходит внутри тела
+        received_sign = data.pop("sign", None)
+        expected_sign = _heleket_sign(data, API_KEY)
+
+        if not received_sign or not hmac.compare_digest(str(received_sign), expected_sign):
+            logger.error(f"❌ Heleket webhook: invalid signature (order {data.get('order_id')})")
+            return JSONResponse(status_code=400, content={"error": "Invalid signature"})
+
+        order_id = data.get("order_id")
+        status = data.get("status")
+
+        # Успешная оплата только в этих статусах
+        if status not in ("paid", "paid_over"):
+            logger.info(f"ℹ️ Heleket webhook: order {order_id} status={status}, ignored")
             return {"status": "ignored"}
 
-        # 📊 получаем платеж из базы
         payment = get_payment(order_id)
-
         if not payment:
-            return {"error": "Payment not found"}
+            logger.error(f"❌ Heleket webhook: payment {order_id} not found")
+            return JSONResponse(status_code=404, content={"error": "Payment not found"})
+
+        # идемпотентность: повторный вебхук не активирует тариф второй раз
+        if payment.get("status") == "succeeded":
+            return {"status": "already_processed"}
 
         user_id = payment["user_id"]
         tariff = payment["tariff"]
+        if tariff not in TARIFFS:
+            logger.error(f"❌ Heleket webhook: unknown tariff {tariff} for order {order_id}")
+            return JSONResponse(status_code=400, content={"error": "Unknown tariff"})
 
-        # 🔥 АКТИВАЦИЯ ТАРИФА
-        activate_user_tariff(user_id, tariff)
+        tariff_days = TARIFFS[tariff]["days"]
+        selected_server = payment.get("selected_server") or "London"
 
-        # ✅ отмечаем оплату
-        update_payment_status(order_id, "paid")
+        # 🔥 АКТИВАЦИЯ ПОДПИСКИ (VPN-конфиг юзер заберёт через /get-vless-config)
+        success = await update_subscription_days(user_id, tariff_days, selected_server)
+        if not success:
+            logger.error(f"❌ Heleket webhook: failed to activate subscription for {user_id}")
+            return JSONResponse(status_code=500, content={"error": "activation failed"})
+
+        update_payment_status(order_id, "succeeded")
+
+        # реферальный бонус (как в остальных флоу)
+        try:
+            user = get_user(user_id)
+            if user and user.get("referred_by"):
+                referrer_id = user["referred_by"]
+                referral_id = f"{referrer_id}_{user_id}"
+                if not db.collection("referrals").document(referral_id).get().exists:
+                    add_referral_bonus_immediately(referrer_id, user_id)
+        except Exception as e:
+            logger.error(f"⚠️ Heleket webhook referral error: {e}")
+
+        # уведомляем юзера в боте (он уже ушёл из WebApp на страницу оплаты)
+        await _notify_user_payment_success(user_id, tariff, selected_server)
 
         return {"status": "success"}
 
     except Exception as e:
-        return {"error": str(e)}
+        logger.error(f"❌ Heleket webhook error: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/buy-with-balance")
 async def buy_with_balance(request: BuyWithBalanceRequest):
